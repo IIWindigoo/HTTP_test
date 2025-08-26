@@ -9,9 +9,9 @@
   -   Max: 0.8424048339948058
   -   Avg: 0.805216166889295
 ## Запуск программы
-- python3 main.py -F hosts.txt -C 5
-- python3 main.py -H https://ya.ru,https://google.com -C 5
-- python3 main.py -H https://ya.ru -C 5 -O result.txt
+- python main.py -F hosts.txt -C 5
+- python main.py -H https://ya.ru,https://google.com -C 5
+- python main.py -H https://ya.ru -C 5 -O result.txt
 ## Установка
 ```bash
 git clone https://github.com/IIWindigoo/HTTP_test.git
