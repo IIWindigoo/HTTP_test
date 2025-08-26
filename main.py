@@ -1,6 +1,8 @@
 from argparse import ArgumentParser
 import requests
 from time import perf_counter
+import sys
+import re
 
 
 def test_host(host):
@@ -56,14 +58,33 @@ def print_stats(stats):
           f"  Max: {max_time}\n" 
           f"  Avg: {avg_time}\n")
 
+def validate_count(count):
+    """Валидация --count"""
+    if count <= 0:
+        print("Ошибка: -C/--count должен быть положительным числом")
+        sys.exit(1)
+    return count
+
+def validate_hosts(hosts):
+    """Валидация --hosts"""
+    hosts = hosts.split(",")
+    url = re.compile(r"^https://[a-zA-Z0-9.-]+\.[a-z]{2,}(/.*)?$")
+    for h in hosts:
+        if not url.match(h):
+            print("Ошибка: -H/--hosts принимает адреса в формате https://example.com")
+            sys.exit(1)
+    return hosts
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(prog="HTTP_test")
-    parser.add_argument("-H", "--hosts", type=str, help="Адреса хостов")
+    parser.add_argument("-H", "--hosts", type=str, required=True, help="Адреса хостов")
     parser.add_argument("-C", "--count", type=int, default=1, help="Количество запросов")
 
     args = parser.parse_args()
-    hosts = args.hosts.split(",")
+    hosts = validate_hosts(args.hosts)
+    count = validate_count(args.count)
 
     for host in hosts:
-        stats = work(host, args.count)
+        stats = work(host, count)
         print_stats(stats)
