@@ -43,20 +43,21 @@ def work(host, count):
         "durations": durations
     }
 
-def print_stats(stats):
+def get_stats(stats):
     """Вывод статистики"""
     durations = stats["durations"]
     min_time = min(durations) if durations else "--"
     max_time = max(durations) if durations else "--"
     avg_time = sum(durations) / len(durations) if durations else "--"
 
-    print(f"Host: {stats["host"]}\n"
+    stats = (f"Host: {stats["host"]}\n"
           f"  Success: {stats["success"]}\n" 
           f"  Failed: {stats["failed"]}\n"
           f"  Errors: {stats["errors"]}\n" 
           f"  Min: {min_time}\n"
           f"  Max: {max_time}\n" 
           f"  Avg: {avg_time}\n")
+    return stats
 
 def validate_count(count):
     """Валидация --count"""
@@ -67,7 +68,6 @@ def validate_count(count):
 
 def validate_hosts(hosts):
     """Валидация --hosts"""
-    hosts = hosts.split(",")
     url = re.compile(r"^https://[a-zA-Z0-9.-]+\.[a-z]{2,}(/.*)?$")
     for h in hosts:
         if not url.match(h):
@@ -78,13 +78,41 @@ def validate_hosts(hosts):
 
 if __name__ == "__main__":
     parser = ArgumentParser(prog="HTTP_test")
-    parser.add_argument("-H", "--hosts", type=str, required=True, help="Адреса хостов")
+    parser.add_argument("-H", "--hosts", type=str, help="Адреса хостов")
     parser.add_argument("-C", "--count", type=int, default=1, help="Количество запросов")
+    parser.add_argument("-F", "--file", type=str, help="Файл со списком адресов хостов")
+    parser.add_argument("-O", "--output", type=str, help="Файл для сохранения результатов")
 
     args = parser.parse_args()
-    hosts = validate_hosts(args.hosts)
+    if args.hosts and args.file:
+        print("Ошибка: Одновременно может быть указан только один из ключей –F или -H")
+        sys.exit(1)
+    if args.hosts:
+        hosts = args.hosts.split(",")
+    elif args.file:
+        try:
+            with open(args.file, "r", encoding="utf-8") as f:
+                hosts = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            print(f"Ошибка: файл {args.file} не найден")
+            sys.exit(1)
+    else:
+        print("Ошибка: должен быть указан один из ключей -F или -H")
+        sys.exit(1)
+
+    hosts_after_validate = validate_hosts(hosts)
     count = validate_count(args.count)
 
-    for host in hosts:
-        stats = work(host, count)
-        print_stats(stats)
+    result = []
+    for host in hosts_after_validate:
+        stats_dict = work(host, count)
+        stats_text = get_stats(stats_dict)
+        result.append(stats_text)
+
+        if not args.output:
+            print(stats_text)
+
+    if args.output:
+        text = "\n".join(result)
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(text)
